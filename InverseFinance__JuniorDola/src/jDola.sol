@@ -93,6 +93,7 @@ contract JDola is ERC4626 {
 
     /**
      * @dev Hook that is called after tokens are deposited into the contract.
+     * TOCHECK: MAX_ASSETS not used
      */    
     function afterDeposit(uint256, uint256) internal override {
         require(totalSupply >= MIN_SHARES, "Shares below MIN_SHARES");
@@ -147,6 +148,7 @@ contract JDola is ERC4626 {
      * @param exactDolaIn The exact amount of DOLA to spend.
      * @param exactDbrOut The exact amount of DBR to receive.
      * @param to The address that will receive the DBR.
+     * TOCHECK: no slippage?
      */
     function buyDbr(uint exactDolaIn, uint exactDbrOut, address to) external updateReserves {
         require(to != address(0), "Zero address");
@@ -162,6 +164,7 @@ contract JDola is ERC4626 {
     /**
      * @dev Donatess DOLA to weekly revenue emissions from msg.sender
      * @param amount Amount of DOLA msg.sender will donate to the weekly revenue
+     * TOCHECK: are all rewards distributed when new week starts?
      */
     function donate(uint amount) public {
         SafeTransferLib.safeTransferFrom(asset, msg.sender, address(this), amount);
