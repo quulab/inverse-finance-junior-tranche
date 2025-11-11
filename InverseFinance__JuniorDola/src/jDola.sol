@@ -75,6 +75,7 @@ contract JDola is ERC4626 {
         _;
     }
 
+    // TOCHECK: `dolaReserve` and `dbrReserve` are not updated in storage
     modifier updateReserves {
         (dolaReserve, dbrReserve) = getReserves();
         lastUpdate = block.timestamp;
