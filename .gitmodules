@@ -1,0 +1,6 @@
+[submodule "InverseFinance__JuniorDola/lib/forge-std"]
+	path = InverseFinance__JuniorDola/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "InverseFinance__JuniorDola/lib/solmate"]
+	path = InverseFinance__JuniorDola/lib/solmate
+	url = https://github.com/transmissions11/solmate
