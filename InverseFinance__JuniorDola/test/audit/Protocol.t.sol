@@ -17,6 +17,7 @@ contract ProtocolTest is Test {
     address gov = makeAddr("gov");
     address newGov = makeAddr("newGov");
     address operator = makeAddr("operator");
+    address slasher = makeAddr("slasher");
     address user = makeAddr("user");
 
     function setUp() public {
@@ -59,10 +60,11 @@ contract ProtocolTest is Test {
     }
 
     function testJDola() public {
+        skip(7 days);
 
-        // // donate
-        // vm.prank(user);
-        // jDola.donate(1000 ether);
+        // donate
+        vm.prank(user);
+        jDola.donate(1000 ether);
 
         // // buyDbr
         // vm.prank(user);
@@ -71,6 +73,15 @@ contract ProtocolTest is Test {
         //     10 ether, // exactDbrOut
         //     user
         // );
+
+        // // setSlashingModule
+        // vm.prank(gov);
+        // jDola.setSlashingModule(slasher, true);
+
+        // // slash
+        // skip(14 days);
+        // vm.prank(slasher);
+        // jDola.slash(1000 ether);
 
         // debugBalance(address(dolaToken), user, "DOLA balance (user)");
     }

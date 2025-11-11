@@ -149,6 +149,7 @@ contract JDola is ERC4626 {
      * @param exactDbrOut The exact amount of DBR to receive.
      * @param to The address that will receive the DBR.
      * TOCHECK: no slippage?
+     * TOCHECK: if DBR always increases in price, are market participants incentivized to buy it when DBR is low on secondary market?
      */
     function buyDbr(uint exactDolaIn, uint exactDbrOut, address to) external updateReserves {
         require(to != address(0), "Zero address");
