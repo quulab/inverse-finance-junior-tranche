@@ -2,23 +2,29 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import {ERC20} from "lib/solmate/src/tokens/ERC4626.sol";
+import {FiRMSlashingModule} from "../../src/FiRMSlashingModule.sol";
 import {LinearInterpolationDelayModel} from "../../src/LinearInterpolationDelayModel.sol";
 import {WithdrawalEscrow} from "../../src/WithdrawalEscrow.sol";
 import {JDola} from "../../src/jDola.sol";
+import {MockDBR} from "./MockDBR.sol";
 import {MockERC20} from "./MockERC20.sol";
+import {MockMarket} from "./MockMarket.sol";
 
 contract ProtocolTest is Test {
     LinearInterpolationDelayModel linearInterpolationDelayModel;
     WithdrawalEscrow withdrawalEscrow;
     JDola jDola;
-    MockERC20 dbrToken;
+    FiRMSlashingModule firmSlashingModule;
+    MockDBR dbrToken;
     MockERC20 dolaToken;
+    MockMarket mockMarket;
 
     address gov = makeAddr("gov");
     address newGov = makeAddr("newGov");
     address operator = makeAddr("operator");
     address slasher = makeAddr("slasher");
     address user = makeAddr("user");
+    address user2 = makeAddr("user2");
 
     function setUp() public {
         linearInterpolationDelayModel = new LinearInterpolationDelayModel(
@@ -33,7 +39,7 @@ contract ProtocolTest is Test {
             address(linearInterpolationDelayModel)
         );
 
-        dbrToken = new MockERC20("DBR", "DBR");
+        dbrToken = new MockDBR("DBR", "DBR");
         dolaToken = new MockERC20("DOLA", "DOLA");
 
         jDola = new JDola(
@@ -46,11 +52,22 @@ contract ProtocolTest is Test {
             "DOLA_VAULT" // symbol
         );
 
-        vm.prank(gov);
+        firmSlashingModule = new FiRMSlashingModule(
+            address(jDola),
+            address(dbrToken),
+            address(dolaToken),
+            gov
+        );
+
+        vm.startPrank(gov);
         jDola.initialize(
             100 ether, // _dbrReserve
             100 ether // _dolaReserve
         );
+        jDola.setSlashingModule(address(firmSlashingModule), true);
+        vm.stopPrank();
+
+        mockMarket = new MockMarket(address(dbrToken), address(dolaToken));
 
         dolaToken.mint(user, 1000 ether);
 
@@ -59,7 +76,11 @@ contract ProtocolTest is Test {
         vm.stopPrank();
     }
 
-    function testJDola() public {
+    function testProtocol() public {
+        //=========
+        // JDola
+        //=========
+        
         skip(7 days);
 
         // donate
@@ -74,14 +95,26 @@ contract ProtocolTest is Test {
         //     user
         // );
 
-        // // setSlashingModule
-        // vm.prank(gov);
-        // jDola.setSlashingModule(slasher, true);
-
         // // slash
         // skip(14 days);
         // vm.prank(slasher);
         // jDola.slash(1000 ether);
+
+        //======================
+        // FiRMSlashingModule
+        //======================
+
+        // vm.prank(gov);
+        // firmSlashingModule.allowMarket(address(mockMarket));
+
+        // skip(14 days);
+
+        // mockMarket.setCollateral(user2, 100 ether);
+        // mockMarket.setDebt(user2, 200 ether);
+        // mockMarket.setCollateralPrice(1 ether);
+
+        // // slash
+        // firmSlashingModule.slash(address(mockMarket), user2);
 
         // debugBalance(address(dolaToken), user, "DOLA balance (user)");
     }

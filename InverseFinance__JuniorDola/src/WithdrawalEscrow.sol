@@ -69,6 +69,7 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
     }
     
     //To renew a withdrawal, queue a 0 amount withdrawal
+    // TOCHECK: user can directly interact with jDolar vault, do we need this contract?
     function queueWithdrawal(uint amount, uint maxWithdrawDelay) external nonReentrant isInitialized {
         uint withdrawDelay;
         try this.getWithdrawDelay(vault.totalSupply(), vault.balanceOf(address(this)) + amount, msg.sender) returns (uint _withdrawDelay){

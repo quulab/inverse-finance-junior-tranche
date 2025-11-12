@@ -61,7 +61,7 @@ contract FiRMSlashingModule {
      * @param market The FiRM market contract with bad debt
      * @param borrower The borrower that has incurred bad debt
      * @return The amount of repaid bad debt
-     * TOCHECK: `market` not validated so `DOLA.approve(market, slashed)` and `IMarket(market)` can move tokens?
+     * CHECKED: `market` not validated so `DOLA.approve(market, slashed)` and `IMarket(market)` can move tokens? => no, markets are whitelisted
      */
     function slash(address market, address borrower) public returns(uint) {
         require(allowedMarkets[market], "Market not allowed"); 
