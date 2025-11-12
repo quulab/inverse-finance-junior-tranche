@@ -54,6 +54,7 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
         withdrawDelayModel = IWithdrawDelayModel(_withdrawDelayModel);
     }
 
+    // TOCHECK: is it necessary?
     modifier isInitialized(){
         require(address(vault) != address(0), "Not initialized");
         _;
@@ -70,6 +71,8 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
     
     //To renew a withdrawal, queue a 0 amount withdrawal
     // TOCHECK: user can directly interact with jDolar vault, do we need this contract?
+    // TOCHECK: maxWithdrawDelay is user controlled so doesn't make much sense?
+    // TOCHECK: what if user is past the exit window?
     function queueWithdrawal(uint amount, uint maxWithdrawDelay) external nonReentrant isInitialized {
         uint withdrawDelay;
         try this.getWithdrawDelay(vault.totalSupply(), vault.balanceOf(address(this)) + amount, msg.sender) returns (uint _withdrawDelay){
@@ -112,6 +115,7 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
         emit Queue(msg.sender, totalWithdrawAmount, fee, start, end); 
     }
 
+    // TOCHECK: somehow on withdraw the fee is also withdrawn
     function completeWithdraw() external nonReentrant {
         uint withdrawAmount = withdrawAmounts[msg.sender];
         ExitWindow memory _exitWindow = exitWindows[msg.sender];

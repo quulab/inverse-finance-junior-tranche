@@ -65,6 +65,7 @@ contract ProtocolTest is Test {
             100 ether // _dolaReserve
         );
         jDola.setSlashingModule(address(firmSlashingModule), true);
+        withdrawalEscrow.initialize(address(jDola));
         vm.stopPrank();
 
         mockMarket = new MockMarket(address(dbrToken), address(dolaToken));
@@ -73,6 +74,7 @@ contract ProtocolTest is Test {
 
         vm.startPrank(user);
         dolaToken.approve(address(jDola), type(uint256).max);
+        jDola.approve(address(withdrawalEscrow), type(uint256).max);
         vm.stopPrank();
     }
 
@@ -83,9 +85,9 @@ contract ProtocolTest is Test {
         
         skip(7 days);
 
-        // donate
-        vm.prank(user);
-        jDola.donate(1000 ether);
+        // // donate
+        // vm.prank(user);
+        // jDola.donate(1000 ether);
 
         // // buyDbr
         // vm.prank(user);
@@ -116,6 +118,30 @@ contract ProtocolTest is Test {
         // // slash
         // firmSlashingModule.slash(address(mockMarket), user2);
 
+        //====================
+        // WithdrawalEscrow
+        //====================
+
+        vm.prank(gov);
+        withdrawalEscrow.setWithdrawFee(100); // 1%
+
+        vm.prank(user);
+        jDola.mint(100 ether, user);
+
+        // queueWithdrawal
+        vm.prank(user);
+        withdrawalEscrow.queueWithdrawal(100 ether, type(uint256).max);
+
+        skip(60 days);
+
+        // cancelWithdrawal
+        vm.prank(user);
+        withdrawalEscrow.cancelWithdrawal();
+
+        // completeWithdraw
+        vm.prank(user);
+        withdrawalEscrow.completeWithdraw();
+
         // debugBalance(address(dolaToken), user, "DOLA balance (user)");
     }
 
@@ -140,5 +166,12 @@ contract ProtocolTest is Test {
 
     function debugBalance(address token, address target, string memory memo) public {
         console.log("%s %e", memo, ERC20(token).balanceOf(target));
+    }
+
+    function debugExitWindow(address user) public {
+        (uint128 start, uint128 end) = withdrawalEscrow.exitWindows(user);
+        console.log("===exit window===");
+        console.log("start:", start / 1 days);
+        console.log("end  :", end / 1 days);
     }
 }
