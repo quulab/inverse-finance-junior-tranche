@@ -75,7 +75,7 @@ contract JDola is ERC4626 {
         _;
     }
 
-    // TOCHECK: `dolaReserve` and `dbrReserve` are not updated in storage
+    // CHECKED: `dolaReserve` and `dbrReserve` are not updated in storage => ok, updated
     modifier updateReserves {
         (dolaReserve, dbrReserve) = getReserves();
         lastUpdate = block.timestamp;
@@ -93,7 +93,7 @@ contract JDola is ERC4626 {
 
     /**
      * @dev Hook that is called after tokens are deposited into the contract.
-     * TOCHECK: MAX_ASSETS not used
+     * CHECKED: MAX_ASSETS not used => yes, but nothing critical
      */    
     function afterDeposit(uint256, uint256) internal override {
         require(totalSupply >= MIN_SHARES, "Shares below MIN_SHARES");

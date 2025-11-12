@@ -70,7 +70,7 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
     }
     
     //To renew a withdrawal, queue a 0 amount withdrawal
-    // TOCHECK: user can directly interact with jDolar vault, do we need this contract?
+    // CHECKED: user can directly interact with jDolar vault, do we need this contract? => yes, but `beforeWithdraw` only allows WithdrawalEscrow to redeem
     // TOCHECK: maxWithdrawDelay is user controlled so doesn't make much sense?
     // TOCHECK: what if user is past the exit window?
     function queueWithdrawal(uint amount, uint maxWithdrawDelay) external nonReentrant isInitialized {

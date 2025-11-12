@@ -25,6 +25,7 @@ contract ProtocolTest is Test {
     address slasher = makeAddr("slasher");
     address user = makeAddr("user");
     address user2 = makeAddr("user2");
+    address user3 = makeAddr("user3");
 
     function setUp() public {
         linearInterpolationDelayModel = new LinearInterpolationDelayModel(
@@ -71,11 +72,73 @@ contract ProtocolTest is Test {
         mockMarket = new MockMarket(address(dbrToken), address(dolaToken));
 
         dolaToken.mint(user, 1000 ether);
+        dolaToken.mint(user2, 1000 ether);
+        dolaToken.mint(user3, 1000 ether);
 
         vm.startPrank(user);
         dolaToken.approve(address(jDola), type(uint256).max);
         jDola.approve(address(withdrawalEscrow), type(uint256).max);
         vm.stopPrank();
+
+        vm.startPrank(user2);
+        dolaToken.approve(address(jDola), type(uint256).max);
+        jDola.approve(address(withdrawalEscrow), type(uint256).max);
+        vm.stopPrank();
+
+        vm.startPrank(user3);
+        dolaToken.approve(address(jDola), type(uint256).max);
+        jDola.approve(address(withdrawalEscrow), type(uint256).max);
+        vm.stopPrank();
+    }
+
+    /**
+     * 1. User deposits 100 DOLA
+     * 2. User2 deposits 100 DOLA
+     * 3. User3 buys DBR for 15 DOLA
+     * 4. User withdraws 100 DOLA shares and gets 7.5 DOLA
+     * 5. User2 withdraws 100 DOLA shares and gets 7.5 DOLA
+     */
+    function testScenario1() public {
+        vm.prank(gov);
+        withdrawalEscrow.setWithdrawFee(100); // 1%
+
+        // Scenario
+        skip(7 days);
+
+        debugBalance(address(dolaToken), user, "DOLA balance (user)");
+        debugBalance(address(dolaToken), user2, "DOLA balance (user2)");
+
+        vm.prank(user);
+        jDola.deposit(100 ether, user);
+
+        vm.prank(user2);
+        jDola.deposit(100 ether, user2);
+
+        vm.prank(user3);
+        jDola.buyDbr(
+            15 ether, // exactDolaIn
+            10 ether, // exactDbrOut
+            user3
+        );
+
+        vm.prank(user);
+        withdrawalEscrow.queueWithdrawal(100 ether, type(uint256).max);
+
+        vm.prank(user2);
+        withdrawalEscrow.queueWithdrawal(100 ether, type(uint256).max);
+
+        skip(31 days);
+
+        vm.prank(user);
+        withdrawalEscrow.completeWithdraw();
+
+        skip(29 days);
+
+        vm.prank(user2);
+        withdrawalEscrow.completeWithdraw();
+
+        debugBalance(address(dolaToken), user, "DOLA balance (user)");
+        debugBalance(address(dolaToken), user2, "DOLA balance (user2)");
     }
 
     function testProtocol() public {
