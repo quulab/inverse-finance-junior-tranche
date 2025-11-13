@@ -22,6 +22,7 @@ function applySafeAssumptions(env e) {
 // High
 //===========
 
+// K invariant always holds
 rule high_kInvariantAlwaysHolds(method f) filtered {
     f -> 
         f.selector != sig:setDbrReserve(uint256).selector && 
@@ -54,30 +55,30 @@ rule high_kInvariantAlwaysHolds(method f) filtered {
 // Unit
 //===========
 
-// // `buyDbr()` updates storage as expected
-// rule unit_buyDbr_integrity() {
-//     env e;
+// `buyDbr()` updates storage as expected
+rule unit_buyDbr_integrity() {
+    env e;
 
-//     uint256 exactDolaIn; 
-//     uint256 exactDbrOut; 
-//     address receiver;
+    uint256 exactDolaIn; 
+    uint256 exactDbrOut; 
+    address receiver;
 
-//     uint256 dolaReserveBefore;
-//     uint256 dbrReserveBefore;
+    uint256 dolaReserveBefore;
+    uint256 dbrReserveBefore;
 
-//     (dolaReserveBefore, dbrReserveBefore) = getReserves(e);
-//     uint256 receiverDbrBalanceBefore = dbrToken.balanceOf(e, receiver);
+    (dolaReserveBefore, dbrReserveBefore) = getReserves(e);
+    uint256 receiverDbrBalanceBefore = dbrToken.balanceOf(e, receiver);
 
-//     buyDbr(e, exactDolaIn, exactDbrOut, receiver);
+    buyDbr(e, exactDolaIn, exactDbrOut, receiver);
 
-//     uint256 dolaReserveAfter = dolaReserve(e);
-//     uint256 dbrReserveAfter = dbrReserve(e);
-//     uint256 receiverDbrBalanceAfter = dbrToken.balanceOf(e, receiver);
+    uint256 dolaReserveAfter = dolaReserve(e);
+    uint256 dbrReserveAfter = dbrReserve(e);
+    uint256 receiverDbrBalanceAfter = dbrToken.balanceOf(e, receiver);
 
-//     assert dolaReserveAfter == require_uint256(dolaReserveBefore + exactDolaIn);
-//     assert dbrReserveAfter == dbrReserveBefore - exactDbrOut;
-//     assert receiverDbrBalanceAfter == require_uint256(receiverDbrBalanceBefore + exactDbrOut);
-// }
+    assert dolaReserveAfter == require_uint256(dolaReserveBefore + exactDolaIn);
+    assert dbrReserveAfter == dbrReserveBefore - exactDbrOut;
+    assert receiverDbrBalanceAfter == require_uint256(receiverDbrBalanceBefore + exactDbrOut);
+}
 
 // `buyDbr()` reverts when expected
 rule unit_buyDbr_revertConditions() {
@@ -99,7 +100,11 @@ rule unit_buyDbr_revertConditions() {
     bool isKInvariantBroken = (dolaReserveBefore + exactDolaIn) * (dbrReserveBefore - exactDbrOut) < K;
     bool isDolaReserveOverflow = dolaReserveBefore + exactDolaIn > max_uint256;
     bool isDbrReserveUnderflow = dbrReserveBefore - exactDbrOut < 0;
-    bool isReserveOverflow = dolaReserveBefore * dbrReserveBefore > max_uint256;
+    bool isReserveOverflow = (dolaReserveBefore + exactDolaIn) * (dbrReserveBefore - exactDbrOut) > max_uint256;
+    bool isEnoughAllowance = dolaToken.allowance(e, e.msg.sender, currentContract) >= exactDolaIn;
+    bool isWeeklyRevenueOverflow = weeklyRevenue(e, require_uint256(e.block.timestamp / SECONDS_IN_WEEK())) + exactDolaIn > max_uint256;
+    bool hasEnoughBalance = dolaToken.balanceOf(e, e.msg.sender) >= exactDolaIn;
+    bool isDbrTotalSupplyOverflow = dbrToken.totalSupply(e) + exactDbrOut > max_uint256;
 
     bool isExpectedToRevert = 
         isEtherSent ||
@@ -107,56 +112,60 @@ rule unit_buyDbr_revertConditions() {
         isKInvariantBroken ||
         isDolaReserveOverflow ||
         isDbrReserveUnderflow ||
-        isReserveOverflow;
+        isReserveOverflow ||
+        !isEnoughAllowance ||
+        isWeeklyRevenueOverflow ||
+        !hasEnoughBalance ||
+        isDbrTotalSupplyOverflow;
 
     buyDbr@withrevert(e, exactDolaIn, exactDbrOut, receiver);
 
     assert lastReverted <=> isExpectedToRevert;
 }
 
-// // `donate()` updates storage as expected
-// rule unit_donate_integrity() {
-//     env e;
+// `donate()` updates storage as expected
+rule unit_donate_integrity() {
+    env e;
 
-//     uint256 amount;
+    uint256 amount;
 
-//     applySafeAssumptions(e);
+    applySafeAssumptions(e);
 
-//     uint256 userBalanceBefore = dolaToken.balanceOf(e, e.msg.sender);
-//     uint256 weeklyRevenueBefore = weeklyRevenue(e, require_uint256(e.block.timestamp / 604800));
+    uint256 userBalanceBefore = dolaToken.balanceOf(e, e.msg.sender);
+    uint256 weeklyRevenueBefore = weeklyRevenue(e, require_uint256(e.block.timestamp / 604800));
 
-//     donate(e, amount);
+    donate(e, amount);
 
-//     uint256 userBalanceAfter = dolaToken.balanceOf(e, e.msg.sender);
-//     uint256 weeklyRevenueAfter = weeklyRevenue(e, require_uint256(e.block.timestamp / 604800));
+    uint256 userBalanceAfter = dolaToken.balanceOf(e, e.msg.sender);
+    uint256 weeklyRevenueAfter = weeklyRevenue(e, require_uint256(e.block.timestamp / 604800));
 
-//     assert userBalanceBefore == userBalanceAfter + amount;
-//     assert weeklyRevenueBefore + amount == weeklyRevenueAfter;
-// }
+    assert userBalanceBefore == userBalanceAfter + amount;
+    assert weeklyRevenueBefore + amount == weeklyRevenueAfter;
+}
 
-// // `donate()` reverts when expected
-// rule unit_donate_revertConditions() {
-//     env e;
+// `donate()` reverts when expected
+rule unit_donate_revertConditions() {
+    env e;
 
-//     uint256 amount;
+    uint256 amount;
 
-//     applySafeAssumptions(e);
+    applySafeAssumptions(e);
 
-//     bool isEtherSent = e.msg.value > 0;
-//     bool isEnoughAllowance = dolaToken.allowance(e, e.msg.sender, currentContract) >= amount;
-//     bool isWeeklyRevenueOverflow = weeklyRevenue(e, require_uint256(e.block.timestamp / SECONDS_IN_WEEK())) + amount > max_uint256;
-//     bool hasEnoughBalance = dolaToken.balanceOf(e, e.msg.sender) >= amount;
+    bool isEtherSent = e.msg.value > 0;
+    bool isEnoughAllowance = dolaToken.allowance(e, e.msg.sender, currentContract) >= amount;
+    bool isWeeklyRevenueOverflow = weeklyRevenue(e, require_uint256(e.block.timestamp / SECONDS_IN_WEEK())) + amount > max_uint256;
+    bool hasEnoughBalance = dolaToken.balanceOf(e, e.msg.sender) >= amount;
 
-//     bool isExpectedToRevert = 
-//         isEtherSent ||
-//         !isEnoughAllowance ||
-//         isWeeklyRevenueOverflow ||
-//         !hasEnoughBalance;
+    bool isExpectedToRevert = 
+        isEtherSent ||
+        !isEnoughAllowance ||
+        isWeeklyRevenueOverflow ||
+        !hasEnoughBalance;
 
-//     donate@withrevert(e, amount);
+    donate@withrevert(e, amount);
 
-//     assert lastReverted <=> isExpectedToRevert;
-// }
+    assert lastReverted <=> isExpectedToRevert;
+}
 
 // `slash()` updates storage as expected
 rule unit_slash_integrity() {
@@ -188,12 +197,18 @@ rule unit_slash_revertConditions() {
 
     applySafeAssumptions(e);
 
+    require totalAssets(e) - 1000000000000000000 == amount, "There're always available assets";
+
     bool isEtherSent = e.msg.value > 0;
     bool isSlashingModule = slashingModules(e, e.msg.sender);
+    bool isZeroSlash = amount == 0;
+    bool hasContractEnoughBalance = dolaToken.balanceOf(e, currentContract) >= amount;
 
     bool isExpectedToRevert = 
         isEtherSent ||
-        !isSlashingModule;
+        !isSlashingModule ||
+        isZeroSlash ||
+        !hasContractEnoughBalance;
 
     slash@withrevert(e, amount);
 

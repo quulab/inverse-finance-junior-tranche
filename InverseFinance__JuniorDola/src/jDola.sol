@@ -154,6 +154,7 @@ contract JDola is ERC4626 {
      * CHECKED: if DBR always increases in price, are market participants incentivized to buy it when DBR is low on secondary market?
      * => DBR is not always increases, there're yearly rewards which deflates the DBR price
      * TOWRITE: K invariant can be broken, see `test_kInvariantBroken`, also check if `setDolaReserve` always reverts bricking the contract
+     * TOWRITE: economic with secondary maket, are participants incentivized to call the method? => seems no
      */
     function buyDbr(uint exactDolaIn, uint exactDbrOut, address to) external updateReserves {
         require(to != address(0), "Zero address");
