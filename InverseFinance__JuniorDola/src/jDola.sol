@@ -215,6 +215,7 @@ contract JDola is ERC4626 {
     /**
      * @dev Sets the dbr reserve while preserving the reserve ratio. Used for changing the depth of the pool.
      * @param _dbrReserve The new dbr reserve
+     * TOWRITE: user can frontrun `setDbrReserve` and `setDolaReserve` to buy cheap and sell with profit
      */
     function setDbrReserve(uint _dbrReserve) external onlyGov updateReserves {
         require(_dbrReserve > 0, "dbr reserve cant be 0");
