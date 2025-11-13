@@ -62,8 +62,8 @@ contract ProtocolTest is Test {
 
         vm.startPrank(gov);
         jDola.initialize(
-            100 ether, // _dbrReserve
-            100 ether // _dolaReserve
+            1_000_000_000_000 ether, // _dbrReserve
+            0.000000001 ether // _dolaReserve
         );
         jDola.setSlashingModule(address(firmSlashingModule), true);
         withdrawalEscrow.initialize(address(jDola));
@@ -89,6 +89,87 @@ contract ProtocolTest is Test {
         dolaToken.approve(address(jDola), type(uint256).max);
         jDola.approve(address(withdrawalEscrow), type(uint256).max);
         vm.stopPrank();
+    }
+
+    /**
+     * Scenario:
+     * 1. User deposits 1 DOLA
+     * 2. User queues 0.5 DOLA for withdrawal
+     * 3. On completing withdrawal tx reverts with "Assets below MIN_ASSETS"
+     */
+    function test_exceedMinAssets_fail() public {
+        skip(7 days);
+
+        vm.prank(user);
+        jDola.deposit(1 ether, user);
+
+        vm.prank(user);
+        withdrawalEscrow.queueWithdrawal(0.5 ether, type(uint256).max);
+
+        skip(31 days);
+
+        vm.prank(user);
+        vm.expectRevert("Assets below MIN_ASSETS");
+        withdrawalEscrow.completeWithdraw();
+    }
+
+    /**
+     * Scenario:
+     * 1. User deposits 1 DOLA
+     * 2. User queues 1 DOLA for withdrawal
+     * 3. Complete withdrawal succeeds leading to assets < MIN_ASSETS
+     */
+    function test_exceedMinAssets_success() public {
+        skip(7 days);
+
+        vm.prank(user);
+        jDola.deposit(1 ether, user);
+
+        vm.prank(user);
+        withdrawalEscrow.queueWithdrawal(1 ether, type(uint256).max);
+
+        skip(60 days);
+
+        vm.prank(user);
+        withdrawalEscrow.completeWithdraw();
+    }
+
+    /**
+     * Scenario:
+     * 1. Government sets DBR reserve to 100 ether
+     * 2. User mints 100 DBR for 0 DOLA
+     */
+    function test_kInvariantBroken() public {        
+        vm.prank(gov);
+        jDola.setDbrReserve(100 ether);
+
+        console.log("===before===");
+        debugReserves(); 
+        debugBalance(address(dbrToken), user, "DBR balance (user)");
+
+        // buyDbr
+        vm.prank(user);
+        jDola.buyDbr(
+            0, // exactDolaIn
+            100 ether, // exactDbrOut
+            user
+        );
+
+        console.log("===after===");
+        debugReserves();
+        debugBalance(address(dbrToken), user, "DBR balance (user)");
+
+        // Output:
+        // ===before===
+        // ===reserves===
+        // DOLA reserve:  0
+        // DBR reserve :  100000000000000000000
+        // DBR balance (user) 0e0
+        // ===after===
+        // ===reserves===
+        // DOLA reserve:  0
+        // DBR reserve :  0
+        // DBR balance (user) 1e20
     }
 
     /**
@@ -165,6 +246,14 @@ contract ProtocolTest is Test {
         // vm.prank(slasher);
         // jDola.slash(1000 ether);
 
+        // // setMaxYearlyRewardBudget
+        // vm.prank(gov);
+        // jDola.setMaxYearlyRewardBudget(10_000 ether);
+
+        // // setYearlyRewardBudget
+        // vm.prank(operator);
+        // jDola.setYearlyRewardBudget(10_000 ether);
+
         //======================
         // FiRMSlashingModule
         //======================
@@ -236,5 +325,12 @@ contract ProtocolTest is Test {
         console.log("===exit window===");
         console.log("start:", start / 1 days);
         console.log("end  :", end / 1 days);
+    }
+
+    function debugReserves() public {
+        (uint dolaReserve, uint dbrReserve) = jDola.getReserves();
+        console.log("===reserves===");
+        console.log("DOLA reserve: ", dolaReserve);
+        console.log("DBR reserve : ", dbrReserve);
     }
 }

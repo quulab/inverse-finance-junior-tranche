@@ -76,6 +76,7 @@ contract JDola is ERC4626 {
     }
 
     // CHECKED: `dolaReserve` and `dbrReserve` are not updated in storage => ok, updated
+    // CHECKED: check that `updateReserves` is used everywhere where needed => seems ok
     modifier updateReserves {
         (dolaReserve, dbrReserve) = getReserves();
         lastUpdate = block.timestamp;
@@ -105,6 +106,7 @@ contract JDola is ERC4626 {
      * @dev Hook that is called before tokens are withdrawn from the contract.
      * @param assets The amount of assets to withdraw.
      * @param shares The amount of shares to withdraw
+     * TOWRITE: is it possible to withdraw all assets and shares? => yes, see `test_exceedMinAssets_fail` & `test_exceedMinAssets_success`
      */
     function beforeWithdraw(uint256 assets, uint256 shares) internal override {
         require(msg.sender == withdrawEscrow, "Only withdraw escrow");
@@ -148,8 +150,10 @@ contract JDola is ERC4626 {
      * @param exactDolaIn The exact amount of DOLA to spend.
      * @param exactDbrOut The exact amount of DBR to receive.
      * @param to The address that will receive the DBR.
-     * TOCHECK: no slippage?
-     * TOCHECK: if DBR always increases in price, are market participants incentivized to buy it when DBR is low on secondary market?
+     * CHECKED: no slippage? => yes, but tx will revert
+     * CHECKED: if DBR always increases in price, are market participants incentivized to buy it when DBR is low on secondary market?
+     * => DBR is not always increases, there're yearly rewards which deflates the DBR price
+     * TOWRITE: K invariant can be broken, see `test_kInvariantBroken`, also check if `setDolaReserve` always reverts bricking the contract
      */
     function buyDbr(uint exactDolaIn, uint exactDbrOut, address to) external updateReserves {
         require(to != address(0), "Zero address");
@@ -165,7 +169,7 @@ contract JDola is ERC4626 {
     /**
      * @dev Donatess DOLA to weekly revenue emissions from msg.sender
      * @param amount Amount of DOLA msg.sender will donate to the weekly revenue
-     * TOCHECK: are all rewards distributed when new week starts?
+     * CHECKED: are all rewards distributed when new week starts? => yes, no stucked funds
      */
     function donate(uint amount) public {
         SafeTransferLib.safeTransferFrom(asset, msg.sender, address(this), amount);
@@ -176,6 +180,7 @@ contract JDola is ERC4626 {
      * @dev Slashing module called by slashing modules to repay bad debt
      * @param amount Amount of DOLA needed to repay bad debt
      * @return `amount` or available DOLA
+     * TOWRTE: (out of scope) may slash all available funds DoSing user redeems
      */
     function slash(uint amount) external onlySlashingModule() returns(uint) {
         //Make sure slashed amount doesn't exceed a safe amount of assets to withdraw
@@ -294,6 +299,7 @@ contract JDola is ERC4626 {
      * @param token The address of the ERC20 token to sweep.
      * @param amount The amount of tokens to sweep.
      * @param to The recipient address of the swept tokens.
+     * TOWRITE: (low) DBR are not used so they will be stuck in the contract
      */
     function sweep(address token, uint amount, address to) public onlyGov {
         require(address(DBR) != token, "Not authorized");
