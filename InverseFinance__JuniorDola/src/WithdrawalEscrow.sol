@@ -54,7 +54,7 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
         withdrawDelayModel = IWithdrawDelayModel(_withdrawDelayModel);
     }
 
-    // TOCHECK: is it necessary?
+    // CHECKED: is it necessary? => not really, but ok
     modifier isInitialized(){
         require(address(vault) != address(0), "Not initialized");
         _;
@@ -71,9 +71,12 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
     
     //To renew a withdrawal, queue a 0 amount withdrawal
     // CHECKED: user can directly interact with jDolar vault, do we need this contract? => yes, but `beforeWithdraw` only allows WithdrawalEscrow to redeem
-    // TOCHECK: maxWithdrawDelay is user controlled so doesn't make much sense?
-    // TOCHECK: what if user is past the exit window?
-    function queueWithdrawal(uint amount, uint maxWithdrawDelay) external nonReentrant isInitialized {
+    // TOWRITE: (low) maxWithdrawDelay is user controlled so doesn't make much sense? => yes
+    // CHECKED: what if user is past the exit window? How to recover funds? => seems ok, `withdrawAmounts` accumulates funds
+    // CHECKED: what if `amount == 0` & `withdrawAmounts != 0` for `require(totalWithdrawAmount > 0, "Zero withdraw amount");` => seems ok
+    // CHECKED: withdraw delay is not fair => seems ok, the more is withdrawn the more the delay
+    // TOWRITE: (low) fee should be rounded up
+    function queueWithdrawal(uint amount, uint maxWithdrawDelay) external /** nonReentrant */ isInitialized {
         uint withdrawDelay;
         try this.getWithdrawDelay(vault.totalSupply(), vault.balanceOf(address(this)) + amount, msg.sender) returns (uint _withdrawDelay){
             if(_withdrawDelay < MIN_WITHDRAW_DELAY){
@@ -115,8 +118,8 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
         emit Queue(msg.sender, totalWithdrawAmount, fee, start, end); 
     }
 
-    // TOCHECK: somehow on withdraw the fee is also withdrawn
-    function completeWithdraw() external nonReentrant {
+    // CHECKED: somehow on withdraw the fee is also withdrawn => seems ok
+    function completeWithdraw() external /** nonReentrant */ {
         uint withdrawAmount = withdrawAmounts[msg.sender];
         ExitWindow memory _exitWindow = exitWindows[msg.sender];
         require(block.timestamp >= _exitWindow.start, "Exit window hasn't started");
@@ -128,7 +131,7 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
         emit Withdraw(msg.sender, withdrawAmount);
     }
 
-    function cancelWithdrawal() external nonReentrant {
+    function cancelWithdrawal() external /** nonReentrant */ {
         uint withdrawAmount = withdrawAmounts[msg.sender];
         require(withdrawAmount > 0, "Zero withdraw amount");
         require(exitWindows[msg.sender].start <= block.timestamp, "Cant cancel before exit window start");

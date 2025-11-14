@@ -159,6 +159,10 @@ contract ProtocolTest is Test {
         debugReserves();
         debugBalance(address(dbrToken), user, "DBR balance (user)");
 
+        vm.prank(gov);
+        vm.expectRevert();
+        jDola.setDolaReserve(1 ether);
+
         // Output:
         // ===before===
         // ===reserves===
@@ -188,6 +192,7 @@ contract ProtocolTest is Test {
 
         debugBalance(address(dolaToken), user, "DOLA balance (user)");
         debugBalance(address(dolaToken), user2, "DOLA balance (user2)");
+        debugBalance(address(dolaToken), user3, "DOLA balance (user3)");
 
         vm.prank(user);
         jDola.deposit(100 ether, user);
@@ -196,11 +201,7 @@ contract ProtocolTest is Test {
         jDola.deposit(100 ether, user2);
 
         vm.prank(user3);
-        jDola.buyDbr(
-            15 ether, // exactDolaIn
-            10 ether, // exactDbrOut
-            user3
-        );
+        jDola.deposit(100 ether, user3);
 
         vm.prank(user);
         withdrawalEscrow.queueWithdrawal(100 ether, type(uint256).max);
@@ -208,18 +209,24 @@ contract ProtocolTest is Test {
         vm.prank(user2);
         withdrawalEscrow.queueWithdrawal(100 ether, type(uint256).max);
 
-        skip(31 days);
+        vm.prank(user3);
+        withdrawalEscrow.queueWithdrawal(100 ether, type(uint256).max);
 
+        skip(21 days);
         vm.prank(user);
         withdrawalEscrow.completeWithdraw();
 
-        skip(29 days);
-
+        skip(20 days);
         vm.prank(user2);
+        withdrawalEscrow.completeWithdraw();
+
+        skip(20 days);
+        vm.prank(user3);
         withdrawalEscrow.completeWithdraw();
 
         debugBalance(address(dolaToken), user, "DOLA balance (user)");
         debugBalance(address(dolaToken), user2, "DOLA balance (user2)");
+        debugBalance(address(dolaToken), user3, "DOLA balance (user3)");
     }
 
     function testProtocol() public {

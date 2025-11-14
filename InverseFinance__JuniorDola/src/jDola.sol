@@ -106,7 +106,7 @@ contract JDola is ERC4626 {
      * @dev Hook that is called before tokens are withdrawn from the contract.
      * @param assets The amount of assets to withdraw.
      * @param shares The amount of shares to withdraw
-     * TOWRITE: is it possible to withdraw all assets and shares? => yes, see `test_exceedMinAssets_fail` & `test_exceedMinAssets_success`
+     * WRITTEN: (medium) is it possible to withdraw all assets and shares? => yes, see `test_exceedMinAssets_fail` & `test_exceedMinAssets_success`
      */
     function beforeWithdraw(uint256 assets, uint256 shares) internal override {
         require(msg.sender == withdrawEscrow, "Only withdraw escrow");
@@ -153,8 +153,8 @@ contract JDola is ERC4626 {
      * CHECKED: no slippage? => yes, but tx will revert
      * CHECKED: if DBR always increases in price, are market participants incentivized to buy it when DBR is low on secondary market?
      * => DBR is not always increases, there're yearly rewards which deflates the DBR price
-     * TOWRITE: K invariant can be broken, see `test_kInvariantBroken`, also check if `setDolaReserve` always reverts bricking the contract
-     * TOWRITE: economic with secondary maket, are participants incentivized to call the method? => seems no
+     * WRITTEN: (medium) K invariant can be broken, see `test_kInvariantBroken`, also check if `setDolaReserve` always reverts bricking the contract
+     * WRITTEN: (medium) economic with secondary maket, are participants incentivized to call the method? => seems no
      */
     function buyDbr(uint exactDolaIn, uint exactDbrOut, address to) external updateReserves {
         require(to != address(0), "Zero address");
@@ -181,7 +181,7 @@ contract JDola is ERC4626 {
      * @dev Slashing module called by slashing modules to repay bad debt
      * @param amount Amount of DOLA needed to repay bad debt
      * @return `amount` or available DOLA
-     * TOWRTE: (out of scope) may slash all available funds DoSing user redeems
+     * TOWRITE: (medium, out of scope) may slash all available funds DoSing user redeems
      */
     function slash(uint amount) external onlySlashingModule() returns(uint) {
         //Make sure slashed amount doesn't exceed a safe amount of assets to withdraw
@@ -215,7 +215,7 @@ contract JDola is ERC4626 {
     /**
      * @dev Sets the dbr reserve while preserving the reserve ratio. Used for changing the depth of the pool.
      * @param _dbrReserve The new dbr reserve
-     * TOWRITE: user can frontrun `setDbrReserve` and `setDolaReserve` to buy cheap and sell with profit
+     * CHECKED: user can frontrun `setDbrReserve` and `setDolaReserve` to buy cheap and sell with profit => seems like a normal arbitrage
      */
     function setDbrReserve(uint _dbrReserve) external onlyGov updateReserves {
         require(_dbrReserve > 0, "dbr reserve cant be 0");
@@ -273,6 +273,7 @@ contract JDola is ERC4626 {
 
     /**
      * @dev Sets a new operator
+     * TOWRITE: (low) missed events
      */
     function setOperator(address _operator) external onlyGov {
         operator = _operator;
