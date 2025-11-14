@@ -9,30 +9,34 @@ methods {
     // MockMarket
     function _.getCollateralValue(address) external => DISPATCHER(true);
     function _.debts(address) external => DISPATCHER(true);
-    function _.repay(address, uint256) external => DISPATCHER(true);
+    function _.repay(address borrower, uint256 slashedAmount) external => repayCVL(borrower, slashedAmount) expect void;
 }
 
 definition SECONDS_IN_WEEK() returns uint256 = 604800;
+
+function repayCVL(address borrower, uint256 slashedAmount) {
+    // do nothing
+} 
 
 //===========
 // Unit
 //===========
 
-// // `slash()` updates storage as expected
-// rule unit_slash_integrity() {
-//     env e;
+// `slash()` updates storage as expected
+rule unit_slash_integrity() {
+    env e;
 
-//     address borrower;
+    address borrower;
 
-//     uint256 collateralAmount = mockMarket.getCollateralValue(e, borrower);
-//     uint256 debtAmount = mockMarket.debts(e, borrower);
+    uint256 collateralAmount = mockMarket.getCollateralValue(e, borrower);
+    uint256 debtAmount = mockMarket.debts(e, borrower);
 
-//     require jDola.totalAssets(e) - 1000000000000000000 == debtAmount - collateralAmount, "There're always available assets";
+    require jDola.totalAssets(e) - 1000000000000000000 == debtAmount - collateralAmount, "There're always available assets";
 
-//     uint256 slashedAmount = slash(e, mockMarket, borrower);
+    uint256 slashedAmount = slash(e, mockMarket, borrower);
 
-//     assert slashedAmount == debtAmount - collateralAmount;
-// }
+    assert slashedAmount == debtAmount - collateralAmount;
+}
 
 // `slash()` revets when expected
 rule unit_slash_revertConditions() {
