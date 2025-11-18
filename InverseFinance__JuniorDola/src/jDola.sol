@@ -181,7 +181,7 @@ contract JDola is ERC4626 {
      * @dev Slashing module called by slashing modules to repay bad debt
      * @param amount Amount of DOLA needed to repay bad debt
      * @return `amount` or available DOLA
-     * TOWRITE: (medium, out of scope) may slash all available funds DoSing user redeems
+     * WRITTEN: (medium, out of scope) may slash all available funds DoSing user redeems
      */
     function slash(uint amount) external onlySlashingModule() returns(uint) {
         //Make sure slashed amount doesn't exceed a safe amount of assets to withdraw
@@ -273,7 +273,7 @@ contract JDola is ERC4626 {
 
     /**
      * @dev Sets a new operator
-     * TOWRITE: (low) missed events
+     * WRITTEN: (low) missed events
      */
     function setOperator(address _operator) external onlyGov {
         operator = _operator;
@@ -302,10 +302,9 @@ contract JDola is ERC4626 {
      * @param token The address of the ERC20 token to sweep.
      * @param amount The amount of tokens to sweep.
      * @param to The recipient address of the swept tokens.
-     * TOWRITE: (low) DBR are not used so they will be stuck in the contract
+     * WRITTEN: (low) DBR are not used so they will be stuck in the contract
      */
     function sweep(address token, uint amount, address to) public onlyGov {
-        require(address(DBR) != token, "Not authorized");
         require(address(asset) != token, "Not authorized");
         SafeTransferLib.safeTransfer(ERC20(token), to, amount);
     }

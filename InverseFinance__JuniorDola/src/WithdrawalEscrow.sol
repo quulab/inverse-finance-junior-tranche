@@ -71,11 +71,11 @@ contract WithdrawalEscrow is ReentrancyGuardTransient{
     
     //To renew a withdrawal, queue a 0 amount withdrawal
     // CHECKED: user can directly interact with jDolar vault, do we need this contract? => yes, but `beforeWithdraw` only allows WithdrawalEscrow to redeem
-    // TOWRITE: (low) maxWithdrawDelay is user controlled so doesn't make much sense? => yes
+    // WRITTEN: (low) maxWithdrawDelay is user controlled so doesn't make much sense? => yes
     // CHECKED: what if user is past the exit window? How to recover funds? => seems ok, `withdrawAmounts` accumulates funds
     // CHECKED: what if `amount == 0` & `withdrawAmounts != 0` for `require(totalWithdrawAmount > 0, "Zero withdraw amount");` => seems ok
     // CHECKED: withdraw delay is not fair => seems ok, the more is withdrawn the more the delay
-    // TOWRITE: (low) fee should be rounded up
+    // WRITTEN: (low) fee should be rounded up
     function queueWithdrawal(uint amount, uint maxWithdrawDelay) external /** nonReentrant */ isInitialized {
         uint withdrawDelay;
         try this.getWithdrawDelay(vault.totalSupply(), vault.balanceOf(address(this)) + amount, msg.sender) returns (uint _withdrawDelay){
